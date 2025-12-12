@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="tr">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sertifika Veri Çıkarım Sistemi</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+
+<body>
+    <div class="container">
+        <header>
+            <h1>📋 Sertifika Veri Çıkarım Sistemi</h1>
+            <p>İlkyardım sertifikalarından otomatik veri çıkarımı</p>
+        </header>
+
+        <main>
+            <div class="upload-section">
+                <div class="upload-box" id="uploadBox">
+                    <svg class="upload-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                        <polyline points="17 8 12 3 7 8"></polyline>
+                        <line x1="12" y1="3" x2="12" y2="15"></line>
+                    </svg>
+                    <h3>PDF Dosyası Yükle</h3>
+                    <p>Sertifika PDF'ini sürükle-bırak veya tıklayarak seç</p>
+                    <input type="file" id="fileInput" accept=".pdf" multiple>
+                    <button class="btn-primary" onclick="document.getElementById('fileInput').click()">
+                        Dosya Seç
+                    </button>
+                </div>
+            </div>
+
+            <div class="progress-section" id="progressSection" style="display: none;">
+                <div class="progress-bar">
+                    <div class="progress-fill" id="progressFill"></div>
+                </div>
+                <p id="progressText">İşleniyor...</p>
+            </div>
+
+            <div class="results-section" id="resultsSection" style="display: none;">
+                <h2>Çıkarılan Veriler</h2>
+                <div class="table-container">
+                    <table id="resultsTable">
+                        <thead>
+                            <tr>
+                                <th>No</th>
+                                <th>Ad Soyad</th>
+                                <th>TC Kimlik No</th>
+                                <th>Belge No</th>
+                                <th>Belgenin Verildiği Tarih</th>
+                                <th>Belge Geçerlilik Tarihi</th>
+                                <th>Eğitim Merkezi</th>
+                            </tr>
+                        </thead>
+                        <tbody id="resultsBody">
+                        </tbody>
+                    </table>
+                </div>
+                <div class="action-buttons">
+                    <button class="btn-success" id="exportBtn">
+                        📊 Excel'e Aktar
+                    </button>
+                    <button class="btn-primary" id="copyBtn">
+                        📋 Kopyala (Google Sheets için)
+                    </button>
+                    <button class="btn-secondary" id="clearBtn">
+                        🔄 Temizle
+                    </button>
+                </div>
+            </div>
+        </main>
+
+        <footer>
+            <p>Powered by PDF.js, Tesseract.js & SheetJS</p>
+        </footer>
+    </div>
+
+    <!-- Libraries -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/tesseract.js@4.1.1/dist/tesseract.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+
+    <!-- Application -->
+    <script src="app.js"></script>
+</body>
+
+</html>

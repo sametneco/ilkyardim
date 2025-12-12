@@ -1,0 +1,170 @@
+<!DOCTYPE html>
+<html lang="tr">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PDF Test</title>
+    <style>
+        body {
+            font-family: monospace;
+            padding: 20px;
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        textarea {
+            width: 100%;
+            height: 400px;
+            margin: 10px 0;
+            padding: 10px;
+            font-family: monospace;
+            font-size: 12px;
+        }
+
+        button {
+            padding: 10px 20px;
+            font-size: 16px;
+            cursor: pointer;
+        }
+
+        .result {
+            background: #f0f0f0;
+            padding: 15px;
+            margin: 10px 0;
+            border-radius: 5px;
+        }
+    </style>
+</head>
+
+<body>
+    <h1>PDF Metin Çıkarma Test</h1>
+    <input type="file" id="fileInput" accept=".pdf">
+    <button onclick="processFile()">İşle</button>
+
+    <h2>Çıkarılan Metin:</h2>
+    <textarea id="output" readonly></textarea>
+
+    <h2>Çıkarılan Veriler:</h2>
+    <div id="results" class="result"></div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/tesseract.js@4.1.1/dist/tesseract.min.js"></script>
+
+    <script>
+        pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+
+        async function processFile() {
+            const file = document.getElementById('fileInput').files[0];
+            if (!file) {
+                alert('Lütfen bir PDF seçin');
+                return;
+            }
+
+            document.getElementById('output').value = 'İşleniyor...';
+            document.getElementById('results').innerHTML = 'İşleniyor...';
+
+            const arrayBuffer = await file.arrayBuffer();
+            const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
+
+            let fullText = '';
+
+            // PDF.js ile metin çıkar
+            for (let i = 1; i <= pdf.numPages; i++) {
+                const page = await pdf.getPage(i);
+                const textContent = await page.getTextContent();
+                const pageText = textContent.items.map(item => item.str).join(' ');
+                fullText += pageText + '\n';
+            }
+
+            console.log('PDF.js Text Length:', fullText.length);
+
+            // Eğer metin yoksa OCR kullan
+            if (fullText.trim().length < 100) {
+                document.getElementById('output').value = 'PDF.js ile metin bulunamadı, OCR kullanılıyor...\n\n';
+
+                const page = await pdf.getPage(1);
+                const viewport = page.getViewport({ scale: 3.0 });
+                const canvas = document.createElement('canvas');
+                const context = canvas.getContext('2d');
+                canvas.width = viewport.width;
+                canvas.height = viewport.height;
+
+                context.fillStyle = 'white';
+                context.fillRect(0, 0, canvas.width, canvas.height);
+
+                await page.render({
+                    canvasContext: context,
+                    viewport: viewport
+                }).promise;
+
+                const { data: { text } } = await Tesseract.recognize(
+                    canvas,
+                    'tur+eng',
+                    {
+                        logger: m => console.log(m)
+                    }
+                );
+
+                fullText = text;
+            }
+
+            // Metni göster
+            document.getElementById('output').value = fullText;
+
+            // Veri çıkar
+            const data = extractData(fullText);
+            document.getElementById('results').innerHTML = `
+                <strong>Ad Soyad:</strong> ${data.adSoyad || 'BULUNAMADI'}<br>
+                <strong>TC Kimlik:</strong> ${data.tcKimlik || 'BULUNAMADI'}<br>
+                <strong>Belge No:</strong> ${data.belgeNo || 'BULUNAMADI'}<br>
+                <strong>Geçerlilik:</strong> ${data.gecerlilikTarihi || 'BULUNAMADI'}<br>
+                <strong>Eğitim Başlangıç:</strong> ${data.egitimBaslangic || 'BULUNAMADI'}<br>
+                <strong>Eğitim Bitiş:</strong> ${data.egitimBitis || 'BULUNAMADI'}
+            `;
+        }
+
+        function extractData(text) {
+            const cleanText = text.replace(/\s+/g, ' ').trim();
+
+            const data = {
+                adSoyad: '',
+                tcKimlik: '',
+                belgeNo: '',
+                gecerlilikTarihi: '',
+                egitimBaslangic: '',
+                egitimBitis: ''
+            };
+
+            // Ad Soyad
+            let match = cleanText.match(/Sayın[:\s]+([A-ZÇĞİÖŞÜ][A-ZÇĞİÖŞÜa-zçğıöşü\s]{2,50}?)(?=\s*(?:TC|T\.C|Belge|[0-9]{11}|kapsamında))/i);
+            if (match) data.adSoyad = match[1].trim().toUpperCase();
+
+            // TC Kimlik
+            match = cleanText.match(/(?:TC|T\.C\.?|Kimlik)?[:\s]*(\d{11})\b/i);
+            if (match) data.tcKimlik = match[1];
+
+            // Belge No
+            match = cleanText.match(/Belge\s*(?:No|Numarası)?[:\s]*(SB[\.\s]*\d+[\.\s]*\d+)/i);
+            if (!match) match = cleanText.match(/(SB[\.\s]*\d{8,}[\.\s]*\d+)/i);
+            if (match) {
+                data.belgeNo = match[1].replace(/\s+/g, '').replace(/^SB/, 'SB.');
+            }
+
+            // Geçerlilik Tarihi
+            match = cleanText.match(/Geçerlilik\s*Tarihi[:\s]*(\d{2}[\/\-\.]\d{2}[\/\-\.]\d{4})/i);
+            if (match) data.gecerlilikTarihi = match[1].replace(/[\-\.]/g, '/');
+
+            // Eğitim Tarihleri
+            const dates = cleanText.match(/\d{2}[\/\-\.]\d{2}[\/\-\.]\d{4}/g);
+            if (dates && dates.length >= 2) {
+                data.egitimBaslangic = dates[dates.length - 2].replace(/[\-\.]/g, '/');
+                data.egitimBitis = dates[dates.length - 1].replace(/[\-\.]/g, '/');
+            }
+
+            return data;
+        }
+    </script>
+</body>
+
+</html>
