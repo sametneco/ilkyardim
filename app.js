@@ -218,9 +218,18 @@ function extractDataFromText(text) {
     }
 
     // Geçerlilik Tarihi - Multiple patterns
-    let gecerlilikMatch = cleanText.match(/Geçerlilik\s*Tarihi[:\s]*(\d{2}[\/\-\.]\d{2}[\/\-\.]\d{4})/i);
+    // Pattern 1: With "Belge" prefix and person name
+    let gecerlilikMatch = cleanText.match(/Belge\s+Geçerlilik\s*Tarihi[:\s]*[A-ZÇĞİÖŞÜ\s]+?(\d{2}[\/\-\.]\d{2}[\/\-\.]\d{4})/i);
     if (!gecerlilikMatch) {
-        // Try alternative pattern
+        // Pattern 2: Without "Belge" but with person name
+        gecerlilikMatch = cleanText.match(/Geçerlilik\s*Tarihi[:\s]*[A-ZÇĞİÖŞÜ\s]+?(\d{2}[\/\-\.]\d{2}[\/\-\.]\d{4})/i);
+    }
+    if (!gecerlilikMatch) {
+        // Pattern 3: Direct date after Geçerlilik Tarihi
+        gecerlilikMatch = cleanText.match(/Geçerlilik\s*Tarihi[:\s]*(\d{2}[\/\-\.]\d{2}[\/\-\.]\d{4})/i);
+    }
+    if (!gecerlilikMatch) {
+        // Pattern 4: Alternative short pattern
         gecerlilikMatch = cleanText.match(/(?:Geçerli|Geçerlilik)[:\s]+(\d{2}[\/\-\.]\d{2}[\/\-\.]\d{4})/i);
     }
     if (gecerlilikMatch) {
@@ -265,8 +274,8 @@ function displayResults() {
             <td data-label="Ad Soyad">${data.adSoyad || '-'}</td>
             <td data-label="TC Kimlik No">${data.tcKimlik || '-'}</td>
             <td data-label="Belge No">${data.belgeNo || '-'}</td>
-            <td data-label="Belgenin Verildiği Tarih">${data.egitimBaslangic || '-'}</td>
-            <td data-label="Belge Geçerlilik Tarihi">${data.egitimBitis || '-'}</td>
+            <td data-label="Belgenin Verildiği Tarih">${data.egitimBitis || '-'}</td>
+            <td data-label="Belge Geçerlilik Tarihi">${data.gecerlilikTarihi || '-'}</td>
             <td data-label="Eğitim Merkezi">Bey Hekim İlk Yardım Eğitici Eğitim Merkezi</td>
         `;
         resultsBody.appendChild(row);
@@ -288,8 +297,8 @@ exportBtn.addEventListener('click', () => {
         'Ad Soyad': data.adSoyad,
         'TC Kimlik No': data.tcKimlik,
         'Belge No': data.belgeNo,
-        'Belgenin Verildiği Tarih': data.egitimBaslangic,
-        'Belge Geçerlilik Tarihi': data.egitimBitis,
+        'Belgenin Verildiği Tarih': data.egitimBitis,
+        'Belge Geçerlilik Tarihi': data.gecerlilikTarihi,
         'Eğitim Merkezi': 'Bey Hekim İlk Yardım Eğitici Eğitim Merkezi'
     }));
 
@@ -333,8 +342,8 @@ copyBtn.addEventListener('click', async () => {
             data.adSoyad || '',
             data.tcKimlik || '',
             data.belgeNo || '',
-            data.egitimBaslangic || '',
             data.egitimBitis || '',
+            data.gecerlilikTarihi || '',
             'Bey Hekim İlk Yardım Eğitici Eğitim Merkezi'
         ]);
 
@@ -347,7 +356,15 @@ copyBtn.addEventListener('click', async () => {
         await navigator.clipboard.writeText(tsvContent);
 
         // Show success message
-        alert(`✅ ${extractedData.length} kayıt kopyalandı!\n\nGoogle Sheets'e yapıştırmak için:\n1. sheets.google.com'a gidin\n2. Yeni sayfa oluşturun veya mevcut sayfayı açın\n3. A1 hücresine tıklayın\n4. Ctrl+V (veya Cmd+V) ile yapıştırın\n\nVeriler otomatik olarak sütunlara ayrılacak!`);
+        alert(`✅ ${extractedData.length} kayıt kopyalandı!
+
+Google Sheets'e yapıştırmak için:
+1. sheets.google.com'a gidin
+2. Yeni sayfa oluşturun veya mevcut sayfayı açın
+3. A1 hücresine tıklayın
+4. Ctrl+V (veya Cmd+V) ile yapıştırın
+
+Veriler otomatik olarak sütunlara ayrılacak!`);
 
     } catch (error) {
         console.error('Copy error:', error);
